@@ -2,36 +2,52 @@ package Object
 
 import (
 	"S3ObjectStorageFileBrowser/Object/Config"
+	"context"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"log"
 )
 
-func MakeClientObject(config Config.Yaml) {
-	var serverList []Config.Server
-	for _, list := range config.ServerList {
-		serverList = append(serverList, list)
+func GetObject(ObjectClient *minio.Client, bucket string, prefix string, objectSize bool, objectETage bool, objectLastModified bool) (Config.ObjectInfoList, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	objectCh := ObjectClient.ListObjects(ctx, bucket, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	})
+	objectList := Config.ObjectInfoList{}
+	for object := range objectCh {
+		objectinfo := Config.ObjectInfo{}
+		if object.Err != nil {
+			return objectList, object.Err
+		}
+		objectinfo.Key = object.Key
+		if objectSize {
+			objectinfo.Size = object.Size
+		}
+		if objectETage {
+			objectinfo.ETag = object.ETag
+		}
+		if objectLastModified {
+			objectinfo.LsatModified = object.LastModified
+		}
+		objectList.Info = append(objectList.Info, objectinfo)
 	}
-	for _, server := range serverList {
-		go MakeClient(server)
-	}
+	return objectList, nil
 }
-
-func GetObjectInfo(ObjectClient minio.Client, objectSize bool) []string {
-	endpoint := "192.168.2.220:9000"
-	accessKeyID := "API user"
-	secretAccessKey := "16885886hzq"
-	opt := "china-jx-gz-01"
+func MakeClient(server Config.Server) (*minio.Client, error) {
 
 	// Initialize minio client object.
-	minioClient, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: false,
-		Region: opt,
+	minioClient, err := minio.New(server.Host, &minio.Options{
+		Creds:        credentials.NewStaticV4(server.AccessKeyID, server.SecretAccessKey, ""),
+		Secure:       server.Options.UseSSL,
+		Region:       server.Options.Region,
+		BucketLookup: server.Options.BucketLookupType,
 	})
 	if err != nil {
 		log.Fatalln(err)
 	}
-	log.Printf("%#v\n", minioClient)
-	return nil
+	//log.Printf("%#v\n", minioClient)
+
+	return minioClient, err
 }

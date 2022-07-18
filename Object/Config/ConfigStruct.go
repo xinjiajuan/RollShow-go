@@ -1,6 +1,9 @@
 package Config
 
-import "github.com/minio/minio-go/v7"
+import (
+	"github.com/minio/minio-go/v7"
+	"time"
+)
 
 type Yaml struct {
 	ServerList []Server `yaml:"server"`
@@ -18,4 +21,15 @@ type Server struct {
 		Region           string                 `yaml:"region"`
 		BucketLookupType minio.BucketLookupType `yaml:"bucketLookupType"` //DNS,Path:1,Auto:0
 	} `yaml:"options"`
+}
+
+type ObjectInfo struct {
+	Key          string
+	Size         int64
+	ETag         string
+	LsatModified time.Time
+}
+
+type ObjectInfoList struct {
+	Info []ObjectInfo
 }
