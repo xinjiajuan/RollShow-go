@@ -14,7 +14,7 @@ func main() {
 
 	app := &cli.App{
 		Name:     "S3 Object Storage File WEB Browser",
-		Version:  "v1.0.1 Debug",
+		Version:  "v1.0.2 Debug",
 		Compiled: time.Now(),
 		Authors: []*cli.Author{
 			&cli.Author{
@@ -49,7 +49,7 @@ func main() {
 				return cli.Exit("配置文件不存在!", 86)
 			} else {
 				config := Config.ReadConfig(cCtx.String("config"))
-				Object.StartS3HttpServer(config)
+				Object.MakeS3HttpServer(config)
 			}
 			return nil
 		},

@@ -2,33 +2,56 @@ package Object
 
 import (
 	"S3ObjectStorageFileBrowser/Object/Config"
+	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 )
 
 type HandlerServer struct {
 	ServerInfo Config.Server
 }
 
-func StartS3HttpServer(config Config.Yaml) {
+func MakeS3HttpServer(config Config.Yaml) {
 	var serverList []Config.Server
+	var serverObjectList []*http.Server
 	for _, list := range config.ServerList {
 		serverList = append(serverList, list)
 	}
 	for _, server := range serverList {
-		webserver := http.Server{
-			Addr: ":" + strconv.Itoa(server.ListenPort),
-		}
 		serverhandler := HandlerServer{}
 		serverhandler.ServerInfo = server
-		http.Handle("/"+server.Bucket, serverhandler)
-		go webserver.ListenAndServe()
-		println(server.Name + " is Running to :" + strconv.Itoa(server.ListenPort) + "/" + server.Bucket)
+		webserver := http.Server{
+			Addr:    ":" + strconv.Itoa(server.ListenPort),
+			Handler: serverhandler,
+		}
+		serverObjectList = append(serverObjectList, &webserver)
+		//http.Handle("/"+server.Bucket, serverhandler)
 		//go webserver.ListenAndServe()
 	}
-	select {} //程序堵塞
+	RunHttpServer(context.Background(), serverList, serverObjectList)
 }
+
+func RunHttpServer(ctx context.Context, serverlist []Config.Server, httpSrv []*http.Server) {
+	for i, serverObject := range httpSrv {
+		println(serverlist[i].Name + " is Running to :" + strconv.Itoa(serverlist[i].ListenPort) + "/" + serverlist[i].Bucket)
+		go serverObject.ListenAndServe()
+	}
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	select {
+	case <-sigs:
+		for i, serverObject := range httpSrv {
+			fmt.Println("Shutting down " + serverlist[i].Name + " instance gracefully...")
+			serverObject.Shutdown(ctx)
+			fmt.Println("Instance " + serverlist[i].Name + " has exited safely!")
+		}
+	} //程序堵塞
+}
+
 func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s3ObjectClient, er := MakeClient(webserver.ServerInfo)
 	if er != nil {
