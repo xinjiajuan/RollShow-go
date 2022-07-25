@@ -39,6 +39,11 @@ server:
 ```
 
 # 日志
+## 2022-7-25 v1.0.5 Debug
+
+- 使用bootstrap渲染前端
+- 使用gohtml生成html页面，库地址: https://github.com/klarkxy/gohtml
+- 前端支持显示文件大小、文件在S3中的路径、文件序号
 
 ## 2022-7-19 v1.0.2 Debug
 
