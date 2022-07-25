@@ -24,12 +24,9 @@ type Server struct {
 }
 
 type ObjectInfo struct {
+	Num          int
 	Key          string
 	Size         int64
 	ETag         string
 	LsatModified time.Time
-}
-
-type ObjectInfoList struct {
-	Info []ObjectInfo
 }
