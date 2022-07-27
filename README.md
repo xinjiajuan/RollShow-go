@@ -1,12 +1,32 @@
-# S3对象存储网络文件浏览服务器
+# RollShow
+## S3对象存储网络文件浏览服务器
 用goland编写，主要功能是可以连接S3对象存储服务器，并且监听端口将配置的存储服务器中桶的文件通过网页展示出来，并且S3服务器连接只在与本服务器，通过路由断绝，用户端看不到S3服务器后端链接。
+一个服务器，一个桶，一个协程，互不干扰
 
-效果就像用nginx搭建的本地文件服务器一样。
-一个桶一个服务器runtime一个端口，互不干扰
+# 为什么要做这样一个东西？
+minio是用的第一个对象存储服务器，现在已经用来做我很多资料的存储和备份。以至于博客的资源文件也放到对象存储中。但是问题也随之而来：博客资源主要使用直链进行资源的调用，而minio提供了api也是支持这样的桶改为开放类型，而允许所有人对其读取和修改。对于访客来说修改存储的资源是不允许的，所以这个项目由此而生，来展示支持s3对象存储的文件，可以生成直链，且实时与对象存储后端保持同步，而且保存在存储服务器中的文件也不会被修改，很安全。
+
 # 启动
 ```shell
-.\go_build_S3ObjectStorageFileBrowser.exe -c .\Config.yaml
-格式:二进制程序 -c 配置文件路径
+$ .\rollshow.exe -c .\Config.yaml #windows
+#记录log并后台运行
+$ ./rollshow.exe -c config.yaml >> rollshow.log & #linux
+```
+
+# 从源码编译
+```shell
+# 拉取源码
+$ git clone https://github.com/xinjiajuan/RollShow-go.git
+# 进入源码文件夹
+$ cd RollShow-go
+# 拉取软件需要的包
+$ go mod tidy
+# 编译
+$ go build
+# 给二进制执行权限
+$ chmod +x rollshow #linux
+# 运行
+$ ./rollshow -c config.yaml
 ```
 # 配置文件
 可使用绝对路径和相对路径。
@@ -14,17 +34,18 @@
 
 ```yaml
 server:
-  - name: minio1 #名称，用于方便用户标识实例，无实际意义
-    listenPort: 8080 #监听端口
-    enable: true #是否启用此实例
-    host: 192.168.2.220:9000 #S3API的Url
-    accessKeyID: 'API user' #顾名思义
-    secretAccessKey: qwertyuio #顾名思义
-    bucket: blog-res #桶
-    options: #复合选项
-      useSSL: true # 启用TLS连接服务器吗
-      region: chinaxxxxxx #区域
-      bucketLookupType: 0 #桶查找类型 DNS,Path:1,Auto:0
+  - name: minio1 #名称，用于方便用户标识实例，无实际意义，必填
+    listenPort: 8080 #监听端口，必填
+    enable: true #是否启用此实例，必填
+    host: 192.168.2.220:9000 #S3API的Url，必填
+    accessKeyID: 'API user' #顾名思义，必填
+    secretAccessKey: qwertyuio #顾名思义，必填
+    bucket: blog-res #桶，必填
+    options: #其他参数,不填
+      useSSL: true # 启用TLS连接服务器，必填
+      region: chinaxxxxxx #区域，必填
+      bucketLookupType: 0 #桶查找类型 DNS,Path:1,Auto:0，必填
+      beianMiit: "" #工信部备案号，为空不显示
   - name: minio2
     listenPort: 8080
     enable: true
@@ -36,9 +57,24 @@ server:
       useSSL: true
       region: china-xxxxxx
       bucketLookupType: 0 #DNS,Path:1,Auto:0
+      beianMiit: ""
 ```
 
+# 鸣谢
+
+- github.com/klarkxy/gohtml
+- github.com/minio/minio-go/v7
+- github.com/urfave/cli/v2
+- gopkg.in/yaml.v3
+
 # 日志
+
+## 2022-7-27 v1.1.0 beta
+
+- 项目改名为`RollShow`,中文名为`展卷`,意为将卷轴展开，代表程序的最本质功能是为s3对象存储桶对象展示与下载
+- 程序正式可用，前端与后端下载功能Debug正常，可以正式使用；但服务器性能有待评价
+- 前端ui调整完毕
+
 ## 2022-7-25 v1.0.5 Debug
 
 - 使用bootstrap渲染前端

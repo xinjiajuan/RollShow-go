@@ -1,15 +1,18 @@
 package Object
 
 import (
-	"S3ObjectStorageFileBrowser/Object/Config"
 	"context"
 	"fmt"
 	"github.com/klarkxy/gohtml"
 	"github.com/minio/minio-go/v7"
+	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"rollshow/Object/Config"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -17,31 +20,32 @@ type HandlerServer struct {
 	ServerInfo Config.Server
 }
 
+//生成http服务对象
 func MakeS3HttpServer(config Config.Yaml) {
 	var serverList []Config.Server
 	var serverObjectList []*http.Server
 	for _, list := range config.ServerList {
-		serverList = append(serverList, list)
+		if list.Enable {
+			serverList = append(serverList, list)
+		}
 	}
 	for _, server := range serverList {
 		serverhandler := HandlerServer{}
 		serverhandler.ServerInfo = server
-		mux := http.NewServeMux()
-		mux.Handle("/"+server.Bucket, serverhandler)
 		webserver := http.Server{
 			Addr:    ":" + strconv.Itoa(server.ListenPort),
-			Handler: mux,
+			Handler: serverhandler,
 		}
 		serverObjectList = append(serverObjectList, &webserver)
-		//serverObjectList = append(serverObjectList, )
 	}
-	RunHttpServer(context.Background(), serverList, serverObjectList)
+	RunHttpServer(serverList, serverObjectList)
 }
 
-func RunHttpServer(ctx context.Context, serverlist []Config.Server, httpSrv []*http.Server) {
+//运行http服务
+func RunHttpServer(serverlist []Config.Server, httpSrv []*http.Server) {
 	for i, serverObject := range httpSrv {
 		println(serverlist[i].Name + " is Running to :" + strconv.Itoa(serverlist[i].ListenPort) + "/" + serverlist[i].Bucket)
-		go serverObject.ListenAndServe()
+		go serverObject.ListenAndServe() //协程并发监听http服务
 	}
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -50,17 +54,83 @@ func RunHttpServer(ctx context.Context, serverlist []Config.Server, httpSrv []*h
 	case <-sigs: //检测Ctrl+c退出程序命令
 		for i, serverObject := range httpSrv {
 			fmt.Println("Shutting down " + serverlist[i].Name + " instance gracefully...")
-			serverObject.Shutdown(ctx) //平滑关闭Http Server线程
+			serverObject.Shutdown(context.Background()) //平滑关闭Http Server线程
 			fmt.Println("Instance " + serverlist[i].Name + " has exited safely!")
 		}
 	}
 }
 
+//处理请求
 func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	//println(strings.SplitN(r.URL.String(), "/", 3)[2])
+	urlArray := strings.Split(r.URL.String(), "/")
+	if !strings.EqualFold(urlArray[1], webserver.ServerInfo.Bucket) {
+		fmt.Fprintln(w, ErrorPage_404(webserver.ServerInfo.Bucket))
+		return
+	}
+	if len(urlArray) > 2 && !strings.EqualFold(urlArray[2], "d") {
+		fmt.Fprintln(w, ErrorPage_404(webserver.ServerInfo.Bucket))
+		return
+	}
+	if len(urlArray) == 3 && strings.EqualFold(urlArray[2], "d") {
+		fmt.Fprintln(w, ErrorPage_404(webserver.ServerInfo.Bucket))
+		return
+	}
+	//文件下载
+	if len(urlArray) > 3 && strings.EqualFold(urlArray[2], "d") {
+		s3ObjectClient, er := MakeClient(webserver.ServerInfo)
+		if er != nil {
+			fmt.Println(er.Error())
+			fmt.Fprintln(w, er.Error())
+			return
+		}
+		str := strings.SplitN(r.URL.String(), "/", 4)
+		enEscapeUrl, _ := url.QueryUnescape(str[3])
+		println("Client start Download " + enEscapeUrl)
+		objectStream, er := s3ObjectClient.GetObject(
+			context.Background(),
+			webserver.ServerInfo.Bucket,
+			enEscapeUrl,
+			minio.GetObjectOptions{})
+		if er != nil {
+			fmt.Println(er)
+			fmt.Fprintln(w, er.Error())
+			return
+		}
+		defer objectStream.Close()
+		objectHeader := make([]byte, 1024)
+		objectStream.Read(objectHeader)
+		objectStat, _ := objectStream.Stat()
+		w.Header().Set("Content-Disposition", "attachment; filename="+urlArray[len(urlArray)-1])
+		w.Header().Set("Content-Type", http.DetectContentType(objectHeader))
+		w.Header().Set("Content-Length", strconv.FormatInt(objectStat.Size, 10))
+		objectStream.Seek(0, 0)
+		if _, er := io.Copy(w, objectStream); er != nil {
+			fmt.Println(er)
+			return
+		}
+		return
+	}
+	//显示首页
+	fmt.Fprintln(w, HomePage(webserver))
+}
+
+//生成404页面
+func ErrorPage_404(bucket string) string {
+	html := gohtml.NewHtml()
+	html.Head().Title().Text("Url Error")
+	html.Meta().Charset("utf-8")
+	html.Body().H3().Text("404 链接不正确，请添加Bucket路径")
+	html.Body().A().Href("/" + bucket).Text(bucket)
+	return html.String()
+}
+
+//生成主页
+func HomePage(webserver HandlerServer) string {
 	s3ObjectClient, er := MakeClient(webserver.ServerInfo)
 	if er != nil {
 		fmt.Println(er.Error())
-		return
+		return er.Error()
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -69,34 +139,27 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		Prefix:    "",
 		Recursive: true,
 	})
-	var i = 0 //对象计数
+	//var i = 0 //对象计数
 	var InfoList []Config.ObjectInfo
 	for object := range objectList {
 		if object.Err != nil {
 			fmt.Println(er.Error())
-			return
+			return er.Error()
 		}
-		i++
+		//i++
 		Info := Config.ObjectInfo{}
-		Info.Num = i
+		//Info.Num = i
 		Info.Key = object.Key
 		Info.Size = object.Size
 		Info.ETag = object.ETag
 		Info.LsatModified = object.LastModified
 		InfoList = append(InfoList, Info)
 	}
-	fmt.Fprintf(w, makeHomePageHtml(InfoList, webserver.ServerInfo))
+	return makeHomePageHtml(InfoList, webserver.ServerInfo)
 }
 
+//生成主页html对象
 func makeHomePageHtml(infolist []Config.ObjectInfo, serverInfo Config.Server) string {
-	//bootstrap := bootstrap.Bootstrap()
-	//bootstrap.Body().H2().Text(serverInfo.Name + " - Bucket: " + serverInfo.Bucket)
-	//bootstrap.Body().Hr()
-	//for _, object := range infolist {
-	//	bootstrap.Body().Tag("a").Href("d/" + object.Key).Text(object.Key).Target("_black").Br()
-	//}
-	////fmt.Println(bootstrap.String())
-	//return bootstrap.String()
 	//html构建
 	bootstrap := gohtml.NewHtml()
 	bootstrap.Html().Lang("zh-CN")
@@ -112,19 +175,39 @@ func makeHomePageHtml(infolist []Config.ObjectInfo, serverInfo Config.Server) st
 	// Head
 	bootstrap.Head().Title().Text("S3 Server " + serverInfo.Name + " - " + serverInfo.Bucket)
 	// Body
-	divframe := bootstrap.Body().Div()
-	divframe.Class("container-md")
-	divframe.H1().Text("S3 Object Storage File WEB Browser").Class("container text-center")
-	divframe.Body().Hr()
-	divframe.Body().H3().Small().Class("text-muted").Text("The current bucket is " + serverInfo.Bucket).Hr()
-	tablediv := divframe.Body().Div().Class("text-center")
-	for _, object := range infolist {
-		rowtable := tablediv.Body().Div().Class("row")
-		rowtable.Body().Div().Class("col-1").Span().Class("badge bg-secondary").Text(strconv.Itoa(object.Num))
-		rowtable.Body().Div().Class("col-9").Align("left").Tag("a").Href("d/" + object.Key).Text(object.Key).Target("_black")
-		rowtable.Body().Div().Class("col-2").Text(getObjectSizeSuitableUnit(object.Size))
-		//divframe.Body()
+	divframe := bootstrap.Body().Div()                                                                    //声明容器
+	divframe.Class("container-md")                                                                        //容器样式
+	divframe.H1().Text("RollShow - S3 Object Server").Class("container text-center")                      //大标题
+	divframe.Body().Hr()                                                                                  //分割线
+	divframe.Body().Div().Class("alert alert-success").Text("The current bucket is " + serverInfo.Bucket) //桶标识
+	//ul := divframe.Body().Ul().Class("list-group")        //文件列表
+
+	table := divframe.Body().Ul().Class("list-group").Li().Class("list-group-item list-group-item-light").Table().Class("table border-primary table-hover")
+	tr := table.Body().Thead().Tr()
+	tr.Body().Th().Attr("scope", "col").Text("#")
+	tr.Body().Th().Attr("scope", "col").Text("Object")
+	tr.Body().Th().Attr("scope", "col").Text("Info")
+	tb := table.Body().Tbody()
+	for i, object := range infolist {
+		tr := tb.Body().Tr()
+		tr.Body().Th().Attr("scope", "row").Span().Class("badge rounded-pill text-bg-light").Text(strconv.Itoa(i + 1))
+		tr.Body().Td().A().Href(serverInfo.Bucket + "/d/" + object.Key).Target("_black").Text(object.Key)
+		td := tr.Body().Td()
+		td.Body().Span().Class("badge text-bg-primary").Text(getObjectSizeSuitableUnit(object.Size))
 	}
-	//println(getObjectSizeSuitableUnit(165))
+	divframe.Body().Hr()
+	footerdiv := divframe.Body().Div().Class("container-sm text-center").Div().Class("row justify-content-sm-center").Div().Class("col-md-6")
+	ul := footerdiv.Body().Ul()
+	if serverInfo.Options.BeianMiit != "" {
+		ul.Class("list-group list-group-horizontal")
+	} else {
+		ul.Class("list-group")
+	}
+	leftli := ul.Body().A().Class("list-group-item list-group-item-action list-group-item-light").Href("https://github.com/xinjiajuan/RollShow-go").Target("_black").Text("Powered by")
+	leftli.Body().Span().Class("badge rounded-pill text-bg-success").Text("RollShow " + Config.Version)
+	if serverInfo.Options.BeianMiit != "" {
+		ul.Body().A().Class("list-group-item list-group-item-action list-group-item-light").Href("https://beian.miit.gov.cn/").Target("_black").Span().Class("badge text-bg-danger").Text(serverInfo.Options.BeianMiit)
+	}
+	divframe.Body().Br()
 	return bootstrap.String()
 }

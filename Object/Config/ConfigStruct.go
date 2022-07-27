@@ -20,6 +20,7 @@ type Server struct {
 		UseSSL           bool                   `yaml:"useSSL"`
 		Region           string                 `yaml:"region"`
 		BucketLookupType minio.BucketLookupType `yaml:"bucketLookupType"` //DNS,Path:1,Auto:0
+		BeianMiit        string                 `yaml:"beianMiit"`
 	} `yaml:"options"`
 }
 
@@ -30,3 +31,9 @@ type ObjectInfo struct {
 	ETag         string
 	LsatModified time.Time
 }
+
+var (
+	Version string = "1.1.0 beta"
+	AppName string = "RollShow"
+	Usage   string = "基于S3对象储存文件下载服务器"
+)

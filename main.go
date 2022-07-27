@@ -1,11 +1,11 @@
 package main
 
 import (
-	"S3ObjectStorageFileBrowser/Object"
-	"S3ObjectStorageFileBrowser/Object/Config"
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
+	"rollshow/Object"
+	"rollshow/Object/Config"
 	"time"
 )
 
@@ -13,8 +13,8 @@ func main() {
 	var pathConfig string
 
 	app := &cli.App{
-		Name:     "S3 Object Storage File WEB Browser",
-		Version:  "v1.0.2 Debug",
+		Name:     Config.AppName,
+		Version:  Config.Version,
 		Compiled: time.Now(),
 		Authors: []*cli.Author{
 			&cli.Author{
@@ -22,25 +22,17 @@ func main() {
 				Email: "itpours@qq.com",
 			},
 		},
-		Copyright: "(c) 2022 XINJIAJUAN",
-		Usage:     "基于S3对象储存的网络浏览器",
+		Copyright: "(c) 2022 xinjiajuan",
+		Usage:     Config.Usage,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:        "config",
-				Value:       "config.yaml",
+				Name: "config",
+				//Value:       "config.yaml",
 				Usage:       "指定YAML配置文件路径",
 				Aliases:     []string{"c"},
 				Required:    true,
 				Destination: &pathConfig,
-			}, /*
-				&cli.StringFlag{
-					Name:     "test",
-					Value:    "",
-					Usage:    "",
-					Aliases:  []string{"t"},
-					Required: true,
-					//Destination: &pathConfig,
-				},*/
+			},
 		},
 		Action: func(cCtx *cli.Context) error {
 			//判断文件夹是否存在
@@ -53,17 +45,6 @@ func main() {
 			}
 			return nil
 		},
-		/*
-			Commands: []*cli.Command{
-				{Name: "config",
-					Aliases: []string{"c"},
-					Usage:   "指定YAML配置文件路径",
-					Action: func(*cli.Context) error {
-						println("23456")
-						return nil
-					},
-				},
-			},*/
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
