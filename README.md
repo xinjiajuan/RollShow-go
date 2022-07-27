@@ -9,14 +9,28 @@ minio是用的第一个对象存储服务器，现在已经用来做我很多资
 # 运行展示
 
 - 帮助
+
+
 ![帮助](https://user-images.githubusercontent.com/36360150/181196704-b3c181af-2bb4-48d9-98fd-9bb5014eb07d.png)
+
 - 版本
+
+
 ![版本](https://user-images.githubusercontent.com/36360150/181196985-9b3582fa-85ce-4f09-b7c5-bfaba65282dc.png)
+
 - 没有指定配置文件时的报错
+
+
 ![没有指定配置文件时的报错](https://user-images.githubusercontent.com/36360150/181197134-964d9a68-2a62-42d3-86cd-0ce95f9c5019.png)
+
 - 前端
+
+
 ![前端](https://user-images.githubusercontent.com/36360150/181198844-ed326676-d0c0-48e6-a0e7-6165a90c9f12.png)
+
 - 运行时（在前端下载了一张照片）
+> 下载时使用了`FDM`下载器，跳转了两次，所以有两条记录
+
 ![image](https://user-images.githubusercontent.com/36360150/181199611-8fb68449-9db4-4a82-95f3-2c931f56299f.png)
 
 # 启动
