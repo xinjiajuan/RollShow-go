@@ -6,6 +6,19 @@
 # 为什么要做这样一个东西？
 minio是用的第一个对象存储服务器，现在已经用来做我很多资料的存储和备份。以至于博客的资源文件也放到对象存储中。但是问题也随之而来：博客资源主要使用直链进行资源的调用，而minio提供了api也是支持这样的桶改为开放类型，而允许所有人对其读取和修改。对于访客来说修改存储的资源是不允许的，所以这个项目由此而生，来展示支持s3对象存储的文件，可以生成直链，且实时与对象存储后端保持同步，而且保存在存储服务器中的文件也不会被修改，很安全。
 
+# 运行展示
+
+- 帮助
+![帮助](https://user-images.githubusercontent.com/36360150/181196704-b3c181af-2bb4-48d9-98fd-9bb5014eb07d.png)
+- 版本
+![版本](https://user-images.githubusercontent.com/36360150/181196985-9b3582fa-85ce-4f09-b7c5-bfaba65282dc.png)
+- 没有指定配置文件时的报错
+![没有指定配置文件时的报错](https://user-images.githubusercontent.com/36360150/181197134-964d9a68-2a62-42d3-86cd-0ce95f9c5019.png)
+- 前端
+![前端](https://user-images.githubusercontent.com/36360150/181198844-ed326676-d0c0-48e6-a0e7-6165a90c9f12.png)
+- 运行时（在前端下载了一张照片）
+![image](https://user-images.githubusercontent.com/36360150/181199611-8fb68449-9db4-4a82-95f3-2c931f56299f.png)
+
 # 启动
 ```shell
 $ .\rollshow.exe -c .\Config.yaml #windows
