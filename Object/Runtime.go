@@ -62,16 +62,20 @@ func RunHttpServer(serverlist []Config.Server, httpSrv []*http.Server) {
 
 //处理请求
 func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	//println(strings.SplitN(r.URL.String(), "/", 3)[2])
+	//获取url和切分
 	urlArray := strings.Split(r.URL.String(), "/")
+	//判断url是哪一种请求
+	//1.根目录，404
 	if !strings.EqualFold(urlArray[1], webserver.ServerInfo.Bucket) {
 		fmt.Fprintln(w, ErrorPage_404(webserver.ServerInfo.Bucket))
 		return
 	}
+	//2.
 	if len(urlArray) > 2 && !strings.EqualFold(urlArray[2], "d") {
 		fmt.Fprintln(w, ErrorPage_404(webserver.ServerInfo.Bucket))
 		return
 	}
+	//3.判断/bucket/d/后面有没有东西 404
 	if len(urlArray) == 3 && strings.EqualFold(urlArray[2], "d") {
 		fmt.Fprintln(w, ErrorPage_404(webserver.ServerInfo.Bucket))
 		return
@@ -112,7 +116,8 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	//显示首页
-	fmt.Fprintln(w, HomePage(webserver))
+	html := HomePage(webserver)
+	fmt.Fprintln(w, html)
 }
 
 //生成404页面
@@ -130,7 +135,7 @@ func HomePage(webserver HandlerServer) string {
 	s3ObjectClient, er := MakeClient(webserver.ServerInfo)
 	if er != nil {
 		fmt.Println(er.Error())
-		return er.Error()
+		return "Create Client:" + er.Error()
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -143,8 +148,8 @@ func HomePage(webserver HandlerServer) string {
 	var InfoList []Config.ObjectInfo
 	for object := range objectList {
 		if object.Err != nil {
-			fmt.Println(er.Error())
-			return er.Error()
+			fmt.Println(object.Err.Error())
+			return "S3 return:" + object.Err.Error()
 		}
 		//i++
 		Info := Config.ObjectInfo{}
@@ -182,12 +187,12 @@ func makeHomePageHtml(infolist []Config.ObjectInfo, serverInfo Config.Server) st
 	divframe.Body().Div().Class("alert alert-success").Text("The current bucket is " + serverInfo.Bucket) //桶标识
 	//ul := divframe.Body().Ul().Class("list-group")        //文件列表
 
-	table := divframe.Body().Ul().Class("list-group").Li().Class("list-group-item list-group-item-light").Table().Class("table border-primary table-hover")
-	tr := table.Body().Thead().Tr()
+	table := divframe.Body().Div().Class("rounded border border-success p-2 mb-2").Table().Class("table border-primary table-hover")
+	tr := table.Body().Thead().Class("table-light").Tr()
 	tr.Body().Th().Attr("scope", "col").Text("#")
 	tr.Body().Th().Attr("scope", "col").Text("Object")
 	tr.Body().Th().Attr("scope", "col").Text("Info")
-	tb := table.Body().Tbody()
+	tb := table.Body().Tbody().Class("table-group-divider")
 	for i, object := range infolist {
 		tr := tb.Body().Tr()
 		tr.Body().Th().Attr("scope", "row").Span().Class("badge rounded-pill text-bg-light").Text(strconv.Itoa(i + 1))
