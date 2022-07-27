@@ -33,6 +33,25 @@ minio是用的第一个对象存储服务器，现在已经用来做我很多资
 
 ![image](https://user-images.githubusercontent.com/36360150/181199611-8fb68449-9db4-4a82-95f3-2c931f56299f.png)
 
+# 性能展示
+下面性能展示使用的服务器配置为：
+- 服务器型号：Inspur NF5280M3
+- CPU: Intel E5-2650V2
+- RAM: 8G ECC
+- 硬盘: HGST MSIP-REM-HG2-HUC101890CSS20
+- 阵列卡: E300750 单盘 Raid 0
+
+## 首页性能
+> 局域网1G带宽下1000并发
+
+![image](https://user-images.githubusercontent.com/36360150/181248990-7bff889a-1ec7-4f85-8958-cb607ad6f081.png)
+
+## 下载性能
+> 局域网1G带宽下100并发下载32M无损歌曲
+
+![image](https://user-images.githubusercontent.com/36360150/181250742-d76f904b-7741-4ad4-9bbc-c9b2551be90e.png)
+
+
 # 启动
 ```shell
 $ .\rollshow.exe -c .\Config.yaml #windows
