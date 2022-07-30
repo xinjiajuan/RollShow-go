@@ -1,3 +1,4 @@
 .idea
 *.exe
 *.yaml
+.DS_Store
