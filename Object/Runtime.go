@@ -6,6 +6,7 @@ import (
 	"github.com/klarkxy/gohtml"
 	"github.com/minio/minio-go/v7"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -101,23 +102,93 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			fmt.Fprintln(w, er.Error())
 			return
 		}
+		/*
+			defer objectStream.Close()
+			objectHeader := make([]byte, 1024)
+			objectStream.Read(objectHeader)
+			objectStat, _ := objectStream.Stat()
+			w.Header().Set("Content-Disposition", "attachment; filename="+urlArray[len(urlArray)-1])
+			w.Header().Set("Content-Type", http.DetectContentType(objectHeader))
+			w.Header().Set("Content-Length", strconv.FormatInt(objectStat.Size, 10))
+			objectStream.Seek(0, 0)
+			if _, er := io.Copy(w, objectStream); er != nil {
+				fmt.Println(er)
+				return
+			}
+			return
+		*/
 		defer objectStream.Close()
-		objectHeader := make([]byte, 1024)
-		objectStream.Read(objectHeader)
-		objectStat, _ := objectStream.Stat()
-		w.Header().Set("Content-Disposition", "attachment; filename="+urlArray[len(urlArray)-1])
-		w.Header().Set("Content-Type", http.DetectContentType(objectHeader))
-		w.Header().Set("Content-Length", strconv.FormatInt(objectStat.Size, 10))
-		objectStream.Seek(0, 0)
-		if _, er := io.Copy(w, objectStream); er != nil {
-			fmt.Println(er)
+		info, err := objectStream.Stat()
+		if err != nil {
+			log.Println("sendFile1", err.Error())
+			http.NotFound(w, r)
 			return
 		}
-		return
+		w.Header().Add("Accept-Ranges", "bytes")
+		w.Header().Add("Content-Disposition", "attachment; filename="+urlArray[len(urlArray)-1])
+		var start, end int64
+		//fmt.Println(request.Header,"\n")
+		if r := r.Header.Get("Range"); r != "" {
+			if strings.Contains(r, "bytes=") && strings.Contains(r, "-") {
+
+				fmt.Sscanf(r, "bytes=%d-%d", &start, &end)
+				if end == 0 {
+					end = info.Size - 1
+				}
+				if start > end || start < 0 || end < 0 || end >= info.Size {
+					w.WriteHeader(http.StatusRequestedRangeNotSatisfiable)
+					log.Println("sendFile2 start:", start, "end:", end, "size:", info.Size)
+					return
+				}
+				w.Header().Add("Content-Length", strconv.FormatInt(end-start+1, 10))
+				w.Header().Add("Content-Range", fmt.Sprintf("bytes %v-%v/%v", start, end, info.Size))
+				w.WriteHeader(http.StatusPartialContent)
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+		} else {
+			w.Header().Add("Content-Length", strconv.FormatInt(info.Size, 10))
+			start = 0
+			end = info.Size - 1
+		}
+		_, err = objectStream.Seek(start, 0)
+		if err != nil {
+			log.Println("sendFile3", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		n := 512
+		buf := make([]byte, n)
+		for {
+			if end-start+1 < int64(n) {
+				n = int(end - start + 1)
+			}
+			_, err := objectStream.Read(buf[:n])
+			if err != nil {
+				log.Println("1:", err)
+				if err != io.EOF {
+					log.Println("error:", err)
+				}
+				return
+			}
+			err = nil
+			_, err = w.Write(buf[:n])
+			if err != nil {
+				//log.Println(err, start, end, info.Size(), n)
+				return
+			}
+			start += int64(n)
+			if start >= end+1 {
+				return
+			}
+		}
+
 	}
 	//显示首页
 	html := HomePage(webserver)
 	fmt.Fprintln(w, html)
+
 }
 
 //生成404页面
