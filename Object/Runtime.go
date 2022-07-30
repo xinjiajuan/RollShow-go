@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
 
 type HandlerServer struct {
@@ -91,7 +92,6 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		}
 		str := strings.SplitN(r.URL.String(), "/", 4)
 		enEscapeUrl, _ := url.QueryUnescape(str[3])
-		println("Client start Download " + enEscapeUrl)
 		objectStream, er := s3ObjectClient.GetObject(
 			context.Background(),
 			webserver.ServerInfo.Bucket,
@@ -102,21 +102,7 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			fmt.Fprintln(w, er.Error())
 			return
 		}
-		/*
-			defer objectStream.Close()
-			objectHeader := make([]byte, 1024)
-			objectStream.Read(objectHeader)
-			objectStat, _ := objectStream.Stat()
-			w.Header().Set("Content-Disposition", "attachment; filename="+urlArray[len(urlArray)-1])
-			w.Header().Set("Content-Type", http.DetectContentType(objectHeader))
-			w.Header().Set("Content-Length", strconv.FormatInt(objectStat.Size, 10))
-			objectStream.Seek(0, 0)
-			if _, er := io.Copy(w, objectStream); er != nil {
-				fmt.Println(er)
-				return
-			}
-			return
-		*/
+		// 资源关闭
 		defer objectStream.Close()
 		info, err := objectStream.Stat()
 		if err != nil {
@@ -124,14 +110,14 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			http.NotFound(w, r)
 			return
 		}
-		w.Header().Add("Accept-Ranges", "bytes")
+		w.Header().Add("Accept-ranges", "bytes")
 		w.Header().Add("Content-Disposition", "attachment; filename="+urlArray[len(urlArray)-1])
 		var start, end int64
 		//fmt.Println(request.Header,"\n")
-		if r := r.Header.Get("Range"); r != "" {
-			if strings.Contains(r, "bytes=") && strings.Contains(r, "-") {
+		if ra := r.Header.Get("Range"); ra != "" {
+			if strings.Contains(ra, "bytes=") && strings.Contains(ra, "-") {
 
-				fmt.Sscanf(r, "bytes=%d-%d", &start, &end)
+				fmt.Sscanf(ra, "bytes=%d-%d", &start, &end)
 				if end == 0 {
 					end = info.Size - 1
 				}
@@ -148,11 +134,18 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 				return
 			}
 		} else {
+			// 非断点续传
+			fmt.Println(time.Now().Format(time.UnixDate), r.URL.RequestURI(), r.Proto, r.Host, r.UserAgent(), r.URL.Query().Get("mz_id"))
+			println()
 			w.Header().Add("Content-Length", strconv.FormatInt(info.Size, 10))
 			start = 0
 			end = info.Size - 1
 		}
 		_, err = objectStream.Seek(start, 0)
+		// add compare
+		if start == (end - start + 1) {
+			return
+		}
 		if err != nil {
 			log.Println("sendFile3", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -164,17 +157,9 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			if end-start+1 < int64(n) {
 				n = int(end - start + 1)
 			}
-			_, err := objectStream.Read(buf[:n])
-			if err != nil {
-				log.Println("1:", err)
-				if err != io.EOF {
-					log.Println("error:", err)
-				}
-				return
-			}
-			err = nil
-			_, err = w.Write(buf[:n])
-			if err != nil {
+			//原生 io
+			_, er := io.CopyBuffer(w, objectStream, buf)
+			if er != nil {
 				//log.Println(err, start, end, info.Size(), n)
 				return
 			}

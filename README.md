@@ -60,6 +60,12 @@ $ ./rollshow.exe -c config.yaml >> rollshow.log & #linux
 ```
 
 # 从源码编译
+
+> 从 1.1.5 beta 版本开始 github 包只上传下列平台的二进制文件
+> - Linux X64
+> - Darwin Intel X64
+
+
 ```shell
 # 拉取源码
 $ git clone https://github.com/xinjiajuan/RollShow-go.git
@@ -89,11 +95,11 @@ server:
     bucket: blog-res #桶，必填
     options: #其他参数,不填
       useSSL: true # 启用TLS连接服务器，必填
-      region: chinaxxxxxx #区域，必填
-      bucketLookupType: 0 #桶查找类型 DNS,Path:1,Auto:0，必填
-      beianMiit: "" #工信部备案号，为空不显示
+      region: chinaxxxxxx #区域，选填
+      bucketLookupType: 0 #桶查找类型 DNS:2,Path:1,Auto:0，必填
+      beianMiit: "" #工信部的备案号,显示在前端，为空不显示
   - name: minio2
-    listenPort: 8080
+    listenPort: 8081
     enable: true
     host: 192.168.2.220:9000
     accessKeyID: user
@@ -114,6 +120,11 @@ server:
 - gopkg.in/yaml.v3
 
 # 日志
+
+## 2022-7-30 v1.1.5 beta
+
+- 支持多线程和断点续传下载
+- 优化服务器 log 打印显示
 
 ## 2022-7-27 v1.1.1 beta
 
