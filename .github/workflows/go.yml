@@ -2,7 +2,7 @@ name: Go
 
 on:
   push:
-    tage:
+    tags:
       - '*'
     branches:
       - 'main'
@@ -10,17 +10,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - goarch: amd64
-            goos: linux
-          - goarch: amd64
-            goos: darwin
-          - goarch: arm64
-            goos: linux
-          - goarch: arm64
-            goos: darwin
+#    strategy:
+#      matrix:
+#        include:
+#          - goarch: amd64
+#            goos: linux
+#          - goarch: amd64
+#            goos: darwin
+#          - goarch: arm64
+#            goos: linux
+#          - goarch: arm64
+#            goos: darwin
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -35,10 +35,11 @@ jobs:
       - name: Install Dependencies
         run: go mod tidy
       - name: Build
-        run: go build
+        run: |
+          chmod +x MAKE.sh
+          ./MAKE.sh
       - name: Add $GITHUB_WORKSPACE to git safe.directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
       - uses: goreleaser/goreleaser-action@v3
         with:
           version: latest
