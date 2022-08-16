@@ -6,55 +6,11 @@
 # 为什么要做这样一个东西？
 minio是用的第一个对象存储服务器，现在已经用来做我很多资料的存储和备份。以至于博客的资源文件也放到对象存储中。但是问题也随之而来：博客资源主要使用直链进行资源的调用，而minio提供了api也是支持直链访问，但是桶需要改为开放类型，而允许所有人对其读取和修改，但是改为私人桶，访问直链又需要鉴权，可博客没有对于s3鉴权的功能。对于访客来说修改存储的资源是不允许的，所以这个项目由此而生，来展示支持s3对象存储的文件，可以生成直链，且实时与对象存储后端保持同步，而且保存在存储服务器中的文件也不会被修改，很安全。
 
-# 运行展示
-
-- 帮助
-
-
-![帮助](https://user-images.githubusercontent.com/36360150/181196704-b3c181af-2bb4-48d9-98fd-9bb5014eb07d.png)
-
-- 版本
-
-
-![版本](https://user-images.githubusercontent.com/36360150/181196985-9b3582fa-85ce-4f09-b7c5-bfaba65282dc.png)
-
-- 没有指定配置文件时的报错
-
-
-![没有指定配置文件时的报错](https://user-images.githubusercontent.com/36360150/181197134-964d9a68-2a62-42d3-86cd-0ce95f9c5019.png)
-
-- 前端
-
-
-![前端](https://user-images.githubusercontent.com/36360150/181198844-ed326676-d0c0-48e6-a0e7-6165a90c9f12.png)
-
-- 运行时（在前端下载了一张照片）
-> 下载时使用了`FDM`下载器，跳转了两次，所以有两条记录
-
-![image](https://user-images.githubusercontent.com/36360150/181199611-8fb68449-9db4-4a82-95f3-2c931f56299f.png)
-
-# 性能展示
-下面性能展示使用的服务器配置为：
-- 服务器型号：Inspur NF5280M3
-- CPU: Intel E5-2650V2
-- RAM: 8G ECC
-- 硬盘: HGST MSIP-REM-HG2-HUC101890CSS20
-- 阵列卡: E300750 单盘 Raid 0
-
-## 首页性能
-> 局域网1G带宽下1000并发
-
-![image](https://user-images.githubusercontent.com/36360150/181248990-7bff889a-1ec7-4f85-8958-cb607ad6f081.png)
-
-## 下载性能
-> 局域网1G带宽下100并发下载32M无损歌曲
-
-![image](https://user-images.githubusercontent.com/36360150/181250742-d76f904b-7741-4ad4-9bbc-c9b2551be90e.png)
 
 
 # 启动
 ```shell
-$ .\rollshow.exe -c .\Config.yaml #windows
+$ .\rollshow.exe -c .\Config.yaml #windows&linux
 #记录log并后台运行
 $ ./rollshow.exe -c config.yaml >> rollshow.log & #linux
 ```
@@ -81,7 +37,8 @@ $ chmod +x rollshow #linux
 $ ./rollshow -c config.yaml
 ```
 # 配置文件
-可使用绝对路径和相对路径。
+程序启动需要指定配置文件,可使用绝对路径和相对路径。
+
 每一个`- name`都是一个实例，互不干扰。
 
 ```yaml
@@ -97,6 +54,8 @@ server:
       useSSL: true # 启用TLS连接服务器，必填
       region: chinaxxxxxx #区域，选填
       bucketLookupType: 0 #桶查找类型 DNS:2,Path:1,Auto:0，必填
+      access-control-allow-origin: 'www.domain.com' #资源跨域策略,只对下载链接有效,主页无跨域设置
+      favicon: "blog-res/d/blog/ico_s/logo.png" #网页图标url,通过 301 跳转获取,暂不支持本地图片,请使用在线资源
       beianMiit: "" #工信部的备案号,显示在前端，为空不显示
   - name: minio2
     listenPort: 8081
@@ -109,17 +68,41 @@ server:
       useSSL: true
       region: china-xxxxxx
       bucketLookupType: 0 #DNS,Path:1,Auto:0
+      access-control-allow-origin: 'www.domain.com' #资源跨域策略,只对下载链接有效,主页无跨域设置
+      favicon: "blog-res/d/blog/ico_s/logo.png" #网页图标url,通过 301 跳转获取,暂不支持本地图片,请使用在线资源
       beianMiit: ""
 ```
 
-# 鸣谢
+# 第三方库
 
 - github.com/klarkxy/gohtml
-- github.com/minio/minio-go/v7
-- github.com/urfave/cli/v2
+- github.com/minio/minio-go/
+- github.com/urfave/cli/
 - gopkg.in/yaml.v3
 
+# 性能展示
+下面性能展示使用的服务器配置为：
+- 服务器型号：Inspur NF5280M3
+- CPU: Intel E5-2650V2
+- RAM: 8G ECC
+- 硬盘: HGST MSIP-REM-HG2-HUC101890CSS20
+- 阵列卡: E300750 单盘 Raid 0
+
+## 首页性能
+> 局域网1G带宽下1000并发
+
+![image](https://user-images.githubusercontent.com/36360150/181248990-7bff889a-1ec7-4f85-8958-cb607ad6f081.png)
+
+## 下载性能
+> 局域网1G带宽下100并发下载32M无损歌曲
+
+![image](https://user-images.githubusercontent.com/36360150/181250742-d76f904b-7741-4ad4-9bbc-c9b2551be90e.png)
+
 # 日志
+## 2022-8-16 v1.1.6 
+
+- 支持配置`/d/`路径下的跨域配置
+- 支持显示`favicon`
 
 ## 2022-7-30 v1.1.5 beta
 

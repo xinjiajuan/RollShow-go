@@ -67,6 +67,11 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	//获取url和切分
 	urlArray := strings.Split(r.URL.String(), "/")
 	//判断url是哪一种请求
+	//网站图标
+	if r.URL.RequestURI() == "/favicon.ico" {
+		w.Header().Set("Location", webserver.ServerInfo.Options.Favicon)
+		w.WriteHeader(301)
+	}
 	//1.根目录，404
 	if !strings.EqualFold(urlArray[1], webserver.ServerInfo.Bucket) {
 		fmt.Fprintln(w, ErrorPage_404(webserver.ServerInfo.Bucket))
@@ -82,6 +87,7 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		fmt.Fprintln(w, ErrorPage_404(webserver.ServerInfo.Bucket))
 		return
 	}
+
 	//文件下载
 	if len(urlArray) > 3 && strings.EqualFold(urlArray[2], "d") {
 		s3ObjectClient, er := MakeClient(webserver.ServerInfo)
@@ -112,6 +118,7 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		}
 		w.Header().Add("Accept-ranges", "bytes")
 		w.Header().Add("Content-Disposition", "attachment; filename="+urlArray[len(urlArray)-1])
+		w.Header().Add("Access-Control-Allow-Origin", webserver.ServerInfo.Options.AccessControlAllowOrigin)
 		var start, end int64
 		//fmt.Println(request.Header,"\n")
 		if ra := r.Header.Get("Range"); ra != "" {
