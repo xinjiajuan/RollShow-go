@@ -35,7 +35,7 @@ type ObjectInfo struct {
 }
 
 var (
-	Version string = "1.1.6"
+	Version string = "1.1.8"
 	AppName string = "RollShow"
 	Usage   string = "基于S3对象储存文件下载服务器"
 )

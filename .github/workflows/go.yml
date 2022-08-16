@@ -35,9 +35,10 @@ jobs:
       - name: Install Dependencies
         run: go mod tidy
       - name: Build
-        run: |
-          chmod +x MAKE.sh
-          ./MAKE.sh
+#        run: |
+#          chmod +x MAKE.sh
+#          ./MAKE.sh
+        run: go build
       - name: Add $GITHUB_WORKSPACE to git safe.directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - uses: goreleaser/goreleaser-action@v3

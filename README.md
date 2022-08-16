@@ -99,7 +99,7 @@ server:
 ![image](https://user-images.githubusercontent.com/36360150/181250742-d76f904b-7741-4ad4-9bbc-c9b2551be90e.png)
 
 # 日志
-## 2022-8-16 v1.1.6 
+## 2022-8-16 v1.1.8
 
 - 支持配置`/d/`路径下的跨域配置
 - 支持显示`favicon`
