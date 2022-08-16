@@ -2,15 +2,12 @@ name: Go
 
 on:
   push:
-    branches: [ "main" ]
     tage:
       - '*'
-  pull_request:
-    branches: [ "main" ]
-
-
+    branches:
+      - 'main'
+    pull_request:
 jobs:
-
   build:
     runs-on: ubuntu-latest
     strategy:
@@ -25,8 +22,12 @@ jobs:
           - goarch: arm64
             goos: darwin
     steps:
-      - uses: actions/checkout@v3
-
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Fetch all tags
+        run: git fetch --force --tags
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
@@ -45,8 +46,10 @@ jobs:
           echo rollshow_"$ver"_"$system"_"$arch"
           mv rollshow rollshow_"$ver"_"$system"_"$arch"
       - uses: actions/checkout@v2
+
       - name: Add $GITHUB_WORKSPACE to git safe.directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - uses: goreleaser/goreleaser-action@v3
         with:
           version: latest
