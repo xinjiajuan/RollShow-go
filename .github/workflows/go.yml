@@ -32,22 +32,15 @@ jobs:
       uses: actions/setup-go@v3
       with:
         go-version: 1.18
-
+    - name: Install Dependencies
+      run: go mod tidy
     - name: Build
       run: go build
-
     - name: Test
-      run: go test
-    - name: Packaging...
-      run: tar czf kubectl-karmada-${{ matrix.goos }}-${{ matrix.goarch }}.tgz kubectl-karmada LICENSE
-    - name: Uploading assets...
-      if: ${{ !env.ACT }}
-      id: upload-release-asset 
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: go test -json > TestResults-${{ matrix.go-version }}.json
+    - name: Upload Go test results
+      uses: actions/upload-artifact@v3
       with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./kubectl-karmada-${{ matrix.goos }}-${{ matrix.goarch }}.tgz
-        asset_name: kubectl-karmada-${{ matrix.goos }}-${{ matrix.goarch }}.tgz
-        asset_content_type: application/gzip
+       name: Go-results-${{ matrix.go-version }}
+       path: TestResults-${{ matrix.go-version }}.json
+   
