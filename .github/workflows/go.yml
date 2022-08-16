@@ -36,17 +36,6 @@ jobs:
         run: go mod tidy
       - name: Build
         run: go build
-      - name: rename
-        run: |
-          chmod +x rollshow
-          version=`./rollshow -v`
-          ver=`echo ${version:0-5}`
-          system=`uname`
-          arch=`uname -m`
-          echo rollshow_"$ver"_"$system"_"$arch"
-          mv rollshow rollshow_"$ver"_"$system"_"$arch"
-      - uses: actions/checkout@v2
-
       - name: Add $GITHUB_WORKSPACE to git safe.directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
