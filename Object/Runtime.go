@@ -119,6 +119,7 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		w.Header().Add("Accept-ranges", "bytes")
 		w.Header().Add("Content-Disposition", "attachment; filename="+urlArray[len(urlArray)-1])
 		w.Header().Add("Access-Control-Allow-Origin", webserver.ServerInfo.Options.AccessControlAllowOrigin)
+		w.Header().Add("content-type", info.ContentType)
 		var start, end int64
 		//fmt.Println(request.Header,"\n")
 		if ra := r.Header.Get("Range"); ra != "" {
