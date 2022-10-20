@@ -17,13 +17,21 @@ type Server struct {
 	SecretAccessKey string `yaml:"secretAccessKey"`
 	Bucket          string `yaml:"bucket"`
 	Options         struct {
-		UseSSL                   bool                   `yaml:"useSSL"`
-		Region                   string                 `yaml:"region"`
-		BucketLookupType         minio.BucketLookupType `yaml:"bucketLookupType"` //DNS,Path:1,Auto:0
-		AccessControlAllowOrigin string                 `yaml:"access-control-allow-origin"`
-		Favicon                  string                 `yaml:"favicon"`
-		BeianMiit                string                 `yaml:"beianMiit"`
+		UseSSL           bool                   `yaml:"useSSLtoS3"`
+		Region           string                 `yaml:"region"`
+		BucketLookupType minio.BucketLookupType `yaml:"bucketLookupType"` //DNS,Path:1,Auto:0
+
 	} `yaml:"options"`
+	Web struct {
+		UseTLS struct {
+			Enable   bool   `yaml:"enable"`
+			CertFile string `yaml:"certFile"`
+			CertKey  string `yaml:"certKey"`
+		} `yaml:"useTLS"`
+		AccessControlAllowOrigin string `yaml:"access-control-allow-origin"`
+		Favicon                  string `yaml:"favicon"`
+		BeianMiit                string `yaml:"beianMiit"`
+	}
 }
 
 type ObjectInfo struct {
@@ -35,7 +43,7 @@ type ObjectInfo struct {
 }
 
 var (
-	Version string = "1.1.9"
+	Version string = "1.2.0"
 	AppName string = "RollShow"
 	Usage   string = "基于S3对象储存文件下载服务器"
 )

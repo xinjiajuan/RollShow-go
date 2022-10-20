@@ -22,7 +22,7 @@ type HandlerServer struct {
 	ServerInfo Config.Server
 }
 
-//生成http服务对象
+// MakeS3HttpServer 生成http服务对象
 func MakeS3HttpServer(config Config.Yaml) {
 	var serverList []Config.Server
 	var serverObjectList []*http.Server
@@ -43,11 +43,15 @@ func MakeS3HttpServer(config Config.Yaml) {
 	RunHttpServer(serverList, serverObjectList)
 }
 
-//运行http服务
+// RunHttpServer 运行http服务
 func RunHttpServer(serverlist []Config.Server, httpSrv []*http.Server) {
 	for i, serverObject := range httpSrv {
 		println(serverlist[i].Name + " is Running to :" + strconv.Itoa(serverlist[i].ListenPort) + "/" + serverlist[i].Bucket)
-		go serverObject.ListenAndServe() //协程并发监听http服务
+		if serverlist[i].Web.UseTLS.Enable {
+			go serverObject.ListenAndServeTLS(serverlist[i].Web.UseTLS.CertFile, serverlist[i].Web.UseTLS.CertKey) //监听https服务
+		} else {
+			go serverObject.ListenAndServe() //协程并发监听http服务
+		}
 	}
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -69,7 +73,7 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	//判断url是哪一种请求
 	//网站图标
 	if r.URL.RequestURI() == "/favicon.ico" {
-		w.Header().Set("Location", webserver.ServerInfo.Options.Favicon)
+		w.Header().Set("Location", webserver.ServerInfo.Web.Favicon)
 		w.WriteHeader(301)
 	}
 	//1.根目录，404
@@ -118,7 +122,7 @@ func (webserver HandlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		}
 		w.Header().Add("Accept-ranges", "bytes")
 		w.Header().Add("Content-Disposition", "attachment; filename="+urlArray[len(urlArray)-1])
-		w.Header().Add("Access-Control-Allow-Origin", webserver.ServerInfo.Options.AccessControlAllowOrigin)
+		w.Header().Add("Access-Control-Allow-Origin", webserver.ServerInfo.Web.AccessControlAllowOrigin)
 		w.Header().Add("content-type", info.ContentType)
 		var start, end int64
 		//fmt.Println(request.Header,"\n")
@@ -267,15 +271,15 @@ func makeHomePageHtml(infolist []Config.ObjectInfo, serverInfo Config.Server) st
 	divframe.Body().Hr()
 	footerdiv := divframe.Body().Div().Class("container-sm text-center").Div().Class("row justify-content-sm-center").Div().Class("col-md-6")
 	ul := footerdiv.Body().Ul()
-	if serverInfo.Options.BeianMiit != "" {
+	if serverInfo.Web.BeianMiit != "" {
 		ul.Class("list-group list-group-horizontal")
 	} else {
 		ul.Class("list-group")
 	}
 	leftli := ul.Body().A().Class("list-group-item list-group-item-action list-group-item-light").Href("https://github.com/xinjiajuan/RollShow-go").Target("_black").Text("Powered by")
 	leftli.Body().Span().Class("badge rounded-pill text-bg-success").Text("RollShow " + Config.Version)
-	if serverInfo.Options.BeianMiit != "" {
-		ul.Body().A().Class("list-group-item list-group-item-action list-group-item-light").Href("https://beian.miit.gov.cn/").Target("_black").Span().Class("badge text-bg-danger").Text(serverInfo.Options.BeianMiit)
+	if serverInfo.Web.BeianMiit != "" {
+		ul.Body().A().Class("list-group-item list-group-item-action list-group-item-light").Href("https://beian.miit.gov.cn/").Target("_black").Span().Class("badge text-bg-danger").Text(serverInfo.Web.BeianMiit)
 	}
 	divframe.Body().Br()
 	return bootstrap.String()

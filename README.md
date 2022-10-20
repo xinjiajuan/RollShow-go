@@ -17,10 +17,6 @@ $ ./rollshow.exe -c config.yaml >> rollshow.log & #linux
 
 # 从源码编译
 
-> 从 1.1.5 beta 版本开始 github 包只上传下列平台的二进制文件
-> - Linux X64
-> - Darwin Intel X64
-
 
 ```shell
 # 拉取源码
@@ -51,9 +47,14 @@ server:
     secretAccessKey: qwertyuio #顾名思义，必填
     bucket: blog-res #桶，必填
     options: #其他参数,不填
-      useSSL: true # 启用TLS连接服务器，必填
+      useSSL: true # 启用TLS连接s3服务器，必填
       region: chinaxxxxxx #区域，选填
       bucketLookupType: 0 #桶查找类型 DNS:2,Path:1,Auto:0，必填
+    web: #web相关设置
+      useTLS: #web网页tls设置
+        enable: false
+        certFile: '/home/user/cert.pem'
+        certKey: '/home/user/key.pem'
       access-control-allow-origin: 'www.domain.com' #资源跨域策略,只对下载链接有效,主页无跨域设置
       favicon: "blog-res/d/blog/ico_s/logo.png" #网页图标url,通过 301 跳转获取,暂不支持本地图片,请使用在线资源
       beianMiit: "" #工信部的备案号,显示在前端，为空不显示
@@ -64,13 +65,18 @@ server:
     accessKeyID: user
     secretAccessKey: xxxxxx
     bucket: bucket
-    options:
-      useSSL: true
-      region: china-xxxxxx
-      bucketLookupType: 0 #DNS,Path:1,Auto:0
+    options: #其他参数,不填
+      useSSL: true # 启用TLS连接s3服务器，必填
+      region: chinaxxxxxx #区域，选填
+      bucketLookupType: 0 #桶查找类型 DNS:2,Path:1,Auto:0，必填
+    web: #web相关设置
+      useTLS: #web网页tls设置
+        enable: false
+        certFile: '/home/user/cert.pem'
+        certKey: '/home/user/key.pem'
       access-control-allow-origin: 'www.domain.com' #资源跨域策略,只对下载链接有效,主页无跨域设置
       favicon: "blog-res/d/blog/ico_s/logo.png" #网页图标url,通过 301 跳转获取,暂不支持本地图片,请使用在线资源
-      beianMiit: ""
+      beianMiit: "" #工信部的备案号,显示在前端，为空不显示
 ```
 
 # 第三方库
@@ -88,6 +94,8 @@ server:
 - 硬盘: HGST MSIP-REM-HG2-HUC101890CSS20
 - 阵列卡: E300750 单盘 Raid 0
 
+图中`192.168.2.220`主机为上诉测试服务器
+
 ## 首页性能
 > 局域网1G带宽下1000并发
 
@@ -99,6 +107,11 @@ server:
 ![image](https://user-images.githubusercontent.com/36360150/181250742-d76f904b-7741-4ad4-9bbc-c9b2551be90e.png)
 
 # 日志
+## 2022-10-22 v1.2.0
+
+- 优化部分配置字段
+- 添加web支持tls，web页面支持https协议
+
 ## 2022-8-16 v1.1.8
 
 - 支持配置`/d/`路径下的跨域配置
